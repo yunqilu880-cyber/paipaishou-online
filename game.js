@@ -659,6 +659,7 @@ function createUltimateAttack(source, target) {
     breaksDefense: true,
     defensePierce: true,
     tracking: true,
+    piercesShield: true,
     piercesStealth: true,
     undodgeable: true,
     ultimate: true,
@@ -777,7 +778,9 @@ function resolveAttacks(attacks, target, targetAction, logs, damaged, successful
       logs.push(`【${attack.name}】追踪到${target.displayName}，穿透暗隐并破隐。`);
     }
 
-    if (target.fireClones > 0 && attack.damage > 0) {
+    if (target.fireClones > 0 && attack.damage > 0 && attack.piercesShield) {
+      logs.push(`【${attack.name}】是真实伤害，穿透${target.displayName}的【火分身】。`);
+    } else if (target.fireClones > 0 && attack.damage > 0) {
       target.fireClones -= 1;
       logs.push(`${target.displayName}的【火分身】抵挡了【${attack.name}】，剩余${target.fireClones}层。`);
       return;
