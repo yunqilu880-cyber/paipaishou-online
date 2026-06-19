@@ -192,9 +192,15 @@ const MAX_HP = 5;
 const STEALTH_DURATION = 3;
 const COMPACT_RESOURCE_THRESHOLD = 6;
 const ULTIMATE_ATTACK_LEVEL = 999;
+const AI_LEVELS = {
+  trash: "垃圾",
+  god: "神",
+  principal: "校长",
+};
 
 const dom = {
   actionGrid: document.querySelector("#actionGrid"),
+  aiDifficultyOptions: document.querySelectorAll("[data-ai]"),
   battleLog: document.querySelector("#battleLog"),
   characterName: document.querySelector("#characterName"),
   characterSelect: document.querySelector("#characterSelect"),
@@ -225,6 +231,7 @@ const dom = {
 
 let game;
 let selectedHeroId = "dragon";
+let selectedAiLevel = "god";
 
 function getHero(heroId) {
   return HEROES[heroId] || HEROES.dragon;
@@ -274,17 +281,18 @@ function createFighter(id, displayName, side, heroId) {
   };
 }
 
-function createGame(heroId = selectedHeroId, enemyHeroId = pickRandomHeroId()) {
+function createGame(heroId = selectedHeroId, enemyHeroId = pickRandomHeroId(), aiLevel = selectedAiLevel) {
   const hero = getHero(heroId);
   const enemyHero = getHero(enemyHeroId);
   return {
     round: 1,
     over: false,
+    aiLevel,
     selectedAction: null,
     lastRoundActions: null,
     player: createFighter("player", "你", "player", heroId),
     enemy: createFighter("enemy", "电脑", "enemy", enemyHeroId),
-    log: [`你选择了【${hero.name}】，本局对手是【${enemyHero.name}】。`],
+    log: [`你选择了【${hero.name}】，本局对手是【${enemyHero.name}】，人机强度【${AI_LEVELS[aiLevel]}】。`],
   };
 }
 
@@ -356,10 +364,23 @@ function getDisabledReason(actor, action) {
   return "";
 }
 
-function chooseEnemyAction() {
+function chooseEnemyAction(playerActionId) {
+  const enemy = game.enemy;
+  const legal = getLegalActionIds(enemy);
+
+  if (game.aiLevel === "trash") return chooseTrashEnemyAction(legal);
+  if (enemy.forcedCharge) return "charge";
+  if (game.aiLevel === "principal") return choosePrincipalEnemyAction(legal, playerActionId) || chooseSmartEnemyAction(legal);
+  return chooseSmartEnemyAction(legal) || chooseTrashEnemyAction(legal);
+}
+
+function getLegalActionIds(actor) {
+  return getActionOrder(actor).filter((id) => !getDisabledReason(actor, getAction(actor, id)));
+}
+
+function chooseTrashEnemyAction(legal) {
   const enemy = game.enemy;
   const player = game.player;
-  const legal = getActionOrder(enemy).filter((id) => !getDisabledReason(enemy, getAction(enemy, id)));
 
   if (enemy.forcedCharge) return "charge";
   if (enemy.heroId === "wukong") {
@@ -385,10 +406,146 @@ function chooseEnemyAction() {
   return pickRandom(legal.filter((id) => id !== "ultimate")) || "charge";
 }
 
+function chooseSmartEnemyAction(legal) {
+  const enemy = game.enemy;
+  const player = game.player;
+
+  if (player.forcedCharge) return choosePunishAction(legal);
+  if (player.pendingUltimate) return chooseAntiShunlongshaAction(legal);
+
+  const killAction = chooseLethalAction(legal);
+  if (killAction) return killAction;
+
+  if (player.stealthTurns > 0) {
+    if (canChoose(legal, "ultimate") && enemy.eggs >= 4) return "ultimate";
+    if (canChoose(legal, "wukongClone") && enemy.fireClones < 2) return "wukongClone";
+    if (canChoose(legal, "stealth") && enemy.stealthTurns <= 0) return "stealth";
+    return canChoose(legal, "charge") ? "charge" : pickRandom(legal);
+  }
+
+  if (enemy.hp <= 2) {
+    if (canChoose(legal, "wukongUltimate")) return "wukongUltimate";
+    if (canChoose(legal, "dodge")) return "dodge";
+    if (canChoose(legal, "defend")) return "defend";
+  }
+
+  if (enemy.heroId === "wukong") return chooseSmartWukongAction(legal);
+  return chooseSmartDragonAction(legal);
+}
+
+function choosePrincipalEnemyAction(legal, playerActionId) {
+  const enemy = game.enemy;
+  const player = game.player;
+  const playerAction = getAction(player, playerActionId);
+
+  if (playerActionId === "charge") return choosePunishAction(legal);
+  if (playerActionId === "defend") {
+    if (canChoose(legal, "dragon")) return "dragon";
+    if (canChoose(legal, "wukongClone") && enemy.fireClones < 2) return "wukongClone";
+    return canChoose(legal, "charge") ? "charge" : pickRandom(legal);
+  }
+  if (playerActionId === "stealth") {
+    if (canChoose(legal, "ultimate")) return "ultimate";
+    return choosePunishAction(legal);
+  }
+  if (playerActionId === "ultimate") {
+    if (canChoose(legal, "wukongUltimate")) return "wukongUltimate";
+    if (canChoose(legal, "ultimate")) return "ultimate";
+    if (canChoose(legal, "defend")) return "defend";
+  }
+
+  const counter = chooseHigherLevelAttack(legal, getAttackLevel(playerAction));
+  if (counter) return counter;
+  if (playerAction.isAttack && canChoose(legal, "defend")) return "defend";
+  if (playerAction.isAttack && canChoose(legal, "dodge")) return "dodge";
+  return chooseSmartEnemyAction(legal);
+}
+
+function chooseSmartDragonAction(legal) {
+  const enemy = game.enemy;
+
+  if (canChoose(legal, "dragon") && (game.player.hp <= getExpectedDamage("dragon") || enemy.eggs >= 3)) return "dragon";
+  if (canChoose(legal, "ultimate") && enemy.eggs >= 4 && game.player.hp > 2) return "ultimate";
+  if (canChoose(legal, "stealth") && enemy.stealthTurns <= 0 && (enemy.hp <= 3 || enemy.eggs >= 2)) return "stealth";
+  if (canChoose(legal, "taunt") && game.player.tauntStreak < 2 && Math.random() < 0.42) return "taunt";
+  if (enemy.eggs < 2 && canChoose(legal, "charge")) return "charge";
+  return chooseBestAttack(legal) || (canChoose(legal, "charge") ? "charge" : pickRandom(legal));
+}
+
+function chooseSmartWukongAction(legal) {
+  const enemy = game.enemy;
+
+  if (canChoose(legal, "wukongUltimate") && (game.player.hp <= getExpectedDamage("wukongUltimate") || enemy.hp <= 3)) return "wukongUltimate";
+  if (canChoose(legal, "wukongTurn") && (game.player.hp <= getExpectedDamage("wukongTurn") || enemy.fireClones > 0)) return "wukongTurn";
+  if (canChoose(legal, "wukongClone") && enemy.fireClones < 2 && enemy.eggs >= 1) return "wukongClone";
+  if (canChoose(legal, "taunt") && game.player.tauntStreak < 2 && Math.random() < 0.35) return "taunt";
+  if (enemy.eggs < 2 && canChoose(legal, "charge")) return "charge";
+  return chooseBestAttack(legal) || (canChoose(legal, "charge") ? "charge" : pickRandom(legal));
+}
+
+function choosePunishAction(legal) {
+  return chooseBestAttack(legal, { allowUltimate: true }) || (canChoose(legal, "wukongClone") ? "wukongClone" : "charge");
+}
+
+function chooseAntiShunlongshaAction(legal) {
+  if (canChoose(legal, "wukongUltimate")) return "wukongUltimate";
+  if (canChoose(legal, "defend")) return "defend";
+  return choosePunishAction(legal);
+}
+
+function chooseLethalAction(legal) {
+  return chooseBestAttack(legal, { lethalOnly: true, allowUltimate: true });
+}
+
+function chooseHigherLevelAttack(legal, playerLevel) {
+  const candidates = getAttackCandidates(legal, { allowUltimate: true })
+    .filter((id) => getAttackLevel(getAction(game.enemy, id)) > playerLevel)
+    .sort((a, b) => getExpectedDamage(b) - getExpectedDamage(a));
+  return candidates[0] || null;
+}
+
+function chooseBestAttack(legal, options = {}) {
+  const candidates = getAttackCandidates(legal, options)
+    .filter((id) => !options.lethalOnly || canMeaningfullyDamagePlayer(id))
+    .sort((a, b) => getExpectedDamage(b) - getExpectedDamage(a));
+  return candidates[0] || null;
+}
+
+function getAttackCandidates(legal, options = {}) {
+  const attackIds = ["attack", "taunt", "dragon", "wukongTurn", "wukongUltimate"];
+  if (options.allowUltimate) attackIds.push("ultimate");
+  return attackIds.filter((id) => canChoose(legal, id));
+}
+
+function canMeaningfullyDamagePlayer(actionId) {
+  if (game.player.stealthTurns > 0 && actionId !== "ultimate") return false;
+  if (game.player.fireClones > 0 && actionId !== "ultimate") return false;
+  return getExpectedDamage(actionId) >= game.player.hp;
+}
+
+function getExpectedDamage(actionId) {
+  const enemy = game.enemy;
+  const baseDamage = {
+    attack: 1,
+    taunt: 1,
+    dragon: 3,
+    wukongTurn: 2,
+    wukongUltimate: 3,
+    ultimate: 4,
+  }[actionId] || 0;
+  const stealthBonus = enemy.stealthTurns > 0 && ["attack", "taunt", "dragon"].includes(actionId) ? 1 : 0;
+  const cloneBonus = enemy.heroId === "wukong" && ["wukongTurn", "wukongUltimate"].includes(actionId) ? enemy.fireClones : 0;
+  return baseDamage + stealthBonus + cloneBonus;
+}
+
+function canChoose(legal, actionId) {
+  return legal.includes(actionId);
+}
+
 function playRound(playerActionId) {
   if (game.over) return;
 
-  const enemyActionId = chooseEnemyAction();
+  const enemyActionId = chooseEnemyAction(playerActionId);
   const playerAction = getAction(game.player, playerActionId);
   const enemyAction = getAction(game.enemy, enemyActionId);
   const result = resolveRound(playerAction, enemyAction);
@@ -1044,6 +1201,13 @@ dom.resetBtn.addEventListener("click", () => {
 });
 
 dom.characterSelect.addEventListener("click", (event) => {
+  const aiButton = event.target.closest("[data-ai]");
+  if (aiButton) {
+    selectedAiLevel = aiButton.dataset.ai;
+    updateActiveAiDifficulty();
+    return;
+  }
+
   const button = event.target.closest("[data-hero]");
   if (!button) return;
   selectedHeroId = button.dataset.hero;
@@ -1057,5 +1221,12 @@ dom.clearLogBtn.addEventListener("click", () => {
   renderLog();
 });
 
+function updateActiveAiDifficulty() {
+  dom.aiDifficultyOptions.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.ai === selectedAiLevel);
+  });
+}
+
 game = createGame(selectedHeroId);
+updateActiveAiDifficulty();
 render();

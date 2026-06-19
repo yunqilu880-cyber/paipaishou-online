@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>拍拍手online</title>
-    <link rel="stylesheet" href="styles.css?v=41" />
+    <link rel="stylesheet" href="styles.css?v=42" />
   </head>
   <body>
     <section class="character-select" id="characterSelect" aria-label="选择角色">
@@ -26,6 +26,23 @@
               <small>烈焰闪、火分身、火魔斩</small>
             </span>
           </button>
+        </div>
+        <div class="ai-difficulty" aria-label="选择人机强度">
+          <p class="eyebrow">人机强度</p>
+          <div class="ai-options">
+            <button class="ai-option" type="button" data-ai="trash">
+              <strong>垃圾</strong>
+              <span>保留随机感，会犯唐错</span>
+            </button>
+            <button class="ai-option is-active" type="button" data-ai="god">
+              <strong>神</strong>
+              <span>会追击、会斩杀、会防大</span>
+            </button>
+            <button class="ai-option" type="button" data-ai="principal">
+              <strong>校长</strong>
+              <span>读你出招，强度很不讲理</span>
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -169,6 +186,6 @@
       </section>
     </main>
 
-    <script src="game.js?v=16"></script>
+    <script src="game.js?v=17"></script>
   </body>
 </html>
