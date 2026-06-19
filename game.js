@@ -178,9 +178,9 @@ const HEROES = {
     name: "二郎神·噬天",
     enemyName: "噬天镜像",
     maxHp: 6,
-    avatar: "assets/erlang-avatar-opt.webp?v=1",
-    normalArt: "assets/erlang-opt.webp?v=1",
-    stealthArt: "assets/erlang-opt.webp?v=1",
+    avatar: "assets/erlang-avatar-opt.webp?v=2",
+    normalArt: "assets/erlang-opt.webp?v=2",
+    stealthArt: "assets/erlang-opt.webp?v=2",
     actionOrder: ["charge", "attack", "defend", "dodge", "taunt", "erlangBite", "erlangEye", "erlangBlackhole", "erlangUltimate"],
   },
 };
