@@ -46,7 +46,7 @@ button {
   padding: 24px;
   background:
     linear-gradient(rgba(10, 20, 34, 0.42), rgba(10, 20, 34, 0.62)),
-    url("assets/battle-bg.png?v=4") center / cover no-repeat;
+    url("assets/battle-bg-opt.webp?v=1") center / cover no-repeat;
 }
 
 .character-select.is-hidden {
@@ -393,7 +393,7 @@ h2 {
   position: relative;
   overflow: hidden;
   background:
-    url("assets/battle-bg.png?v=4") center / cover no-repeat,
+    url("assets/battle-bg-opt.webp?v=1") center / cover no-repeat,
     #77c4d6;
 }
 
@@ -498,7 +498,7 @@ h2 {
   height: 50px;
   border: 3px solid rgba(255, 255, 255, 0.78);
   border-radius: 50%;
-  background: var(--avatar-image, url("assets/dragon-girl-avatar.png?v=1")) center / cover no-repeat;
+  background: var(--avatar-image, url("assets/dragon-girl-avatar-opt.webp?v=1")) center / cover no-repeat;
   box-shadow:
     0 8px 16px rgba(23, 32, 51, 0.22),
     0 0 0 1px rgba(23, 32, 51, 0.12);
@@ -642,13 +642,13 @@ h2 {
 
 .stat-hp > div:first-child > span {
   border: 0;
-  background-image: url("assets/hp-drop.png?v=1");
+  background-image: url("assets/hp-drop-opt.webp?v=1");
   filter: drop-shadow(0 3px 5px rgba(145, 0, 10, 0.18));
 }
 
 .stat-eggs > div:first-child > span {
   border: 0;
-  background-image: url("assets/egg-icon.png?v=1");
+  background-image: url("assets/egg-icon-opt.webp?v=1");
   filter: drop-shadow(0 3px 5px rgba(36, 91, 155, 0.16));
 }
 
@@ -705,7 +705,7 @@ h2 {
 .heart {
   width: 20px;
   height: 25px;
-  background-image: url("assets/hp-drop.png?v=1");
+  background-image: url("assets/hp-drop-opt.webp?v=1");
 }
 
 .blood-drop.empty,
@@ -717,7 +717,7 @@ h2 {
 .egg {
   width: 18px;
   height: 22px;
-  background-image: url("assets/egg-icon.png?v=1");
+  background-image: url("assets/egg-icon-opt.webp?v=1");
 }
 
 .egg.more {
@@ -1044,7 +1044,7 @@ h2 {
   border-radius: 0;
   position: absolute;
   bottom: 28px;
-  background: url("assets/defense-shield.png?v=1") center / contain no-repeat;
+  background: url("assets/defense-shield-opt.webp?v=1") center / contain no-repeat;
   filter:
     drop-shadow(0 0 10px rgba(123, 221, 255, 0.5))
     drop-shadow(0 8px 14px rgba(23, 32, 51, 0.2));
@@ -1065,7 +1065,7 @@ h2 {
   border-radius: 50%;
   background:
     radial-gradient(circle at 50% 54%, rgba(12, 36, 52, 0.72) 0 43%, rgba(12, 36, 52, 0.28) 44% 52%, transparent 53%),
-    url("assets/round-badge.png?v=1") center / contain no-repeat;
+    url("assets/round-badge-opt.webp?v=1") center / contain no-repeat;
   color: var(--cream);
   display: grid;
   justify-items: center;
@@ -1814,11 +1814,19 @@ h2 {
   .character-art-wrap {
     width: 216px;
     height: 280px;
+    animation: none;
+    filter: drop-shadow(0 8px 8px rgba(23, 32, 51, 0.18));
+  }
+
+  .character-art-wrap::before,
+  .character-art-wrap::after {
+    display: none;
   }
 
   .fighter[data-hero="wukong"] .character-art-wrap {
     width: 254px;
     height: 326px;
+    filter: drop-shadow(0 8px 8px rgba(23, 32, 51, 0.18));
   }
 
   .fighter-enemy .character-art-wrap {

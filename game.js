@@ -104,9 +104,9 @@ const HEROES = {
     name: "小龙女·暗隐",
     enemyName: "暗隐镜像",
     maxHp: 5,
-    avatar: "assets/dragon-girl-avatar.png?v=1",
-    normalArt: "assets/dragon-girl.png?v=2",
-    stealthArt: "assets/dragon-girl-stealth-cutout.png?v=2",
+    avatar: "assets/dragon-girl-avatar-opt.webp?v=1",
+    normalArt: "assets/dragon-girl-opt.webp?v=1",
+    stealthArt: "assets/dragon-girl-stealth-opt.webp?v=1",
     actionOrder: ACTION_ORDER,
     actionOverrides: {
       dodge: {
@@ -121,9 +121,9 @@ const HEROES = {
     name: "孙悟空·幻变",
     enemyName: "幻变镜像",
     maxHp: 6,
-    avatar: "assets/wukong-avatar.png?v=2",
-    normalArt: "assets/wukong.png?v=3",
-    stealthArt: "assets/wukong.png?v=3",
+    avatar: "assets/wukong-avatar-opt.webp?v=1",
+    normalArt: "assets/wukong-opt.webp?v=1",
+    stealthArt: "assets/wukong-opt.webp?v=1",
     actionOrder: ["charge", "attack", "defend", "dodge", "taunt", "wukongTurn", "wukongClone", "wukongUltimate"],
     actionOverrides: {
       dodge: {
