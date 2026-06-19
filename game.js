@@ -35,6 +35,7 @@ const ACTIONS = {
     icon: "hook",
     description: "造成1点伤害；命中后下回合强制对方加蛋。",
     isAttack: true,
+    isSkillAttack: true,
   },
   stealth: {
     id: "stealth",
@@ -50,6 +51,7 @@ const ACTIONS = {
     icon: "spear",
     description: "造成3点伤害；打到防御则碎防。",
     isAttack: true,
+    isSkillAttack: true,
   },
   ultimate: {
     id: "ultimate",
@@ -81,6 +83,44 @@ const ACTIONS = {
     cost: 3,
     icon: "burst",
     description: "造成3点伤害，刷新免费烈焰闪；本回合自身无法被选中。",
+    damage: 3,
+    isAttack: true,
+    isSkillAttack: true,
+  },
+  erlangBite: {
+    id: "erlangBite",
+    name: "狗咬",
+    cost: 1,
+    icon: "hook",
+    description: "群伤技能；当前1v1中造成1点伤害，命中或咬到护盾时回复1血。",
+    damage: 1,
+    isAttack: true,
+    isSkillAttack: true,
+  },
+  erlangEye: {
+    id: "erlangEye",
+    name: "阴眼",
+    cost: 2,
+    icon: "eye",
+    description: "开启后自己的攻击技能伤害+1；本身不是攻击，但会与2蛋技能平。",
+    clashLevel: 2,
+  },
+  erlangBlackhole: {
+    id: "erlangBlackhole",
+    name: "黑洞",
+    cost: 2,
+    icon: "burst",
+    description: "造成1点伤害并控制；打到防御则碎防。命中后下回合保留2蛋等级。",
+    damage: 1,
+    isAttack: true,
+    isSkillAttack: true,
+  },
+  erlangUltimate: {
+    id: "erlangUltimate",
+    name: "暴风斩",
+    cost: 3,
+    icon: "spear",
+    description: "大招，造成3点伤害；打到防御则碎防。",
     damage: 3,
     isAttack: true,
     isSkillAttack: true,
@@ -132,6 +172,16 @@ const HEROES = {
         description: "躲开本回合攻击并回复1点血；开局自带一次免费使用。",
       },
     },
+  },
+  erlang: {
+    id: "erlang",
+    name: "二郎神·噬天",
+    enemyName: "噬天镜像",
+    maxHp: 6,
+    avatar: "assets/erlang-avatar-opt.webp?v=1",
+    normalArt: "assets/erlang-opt.webp?v=1",
+    stealthArt: "assets/erlang-opt.webp?v=1",
+    actionOrder: ["charge", "attack", "defend", "dodge", "taunt", "erlangBite", "erlangEye", "erlangBlackhole", "erlangUltimate"],
   },
 };
 
@@ -273,6 +323,9 @@ function createFighter(id, displayName, side, heroId) {
     pendingUltimate: false,
     stealthTurns: 0,
     fireClones: 0,
+    darkEyeActive: false,
+    blackholeTurns: 0,
+    blackholeTargetId: null,
     freeDodgeAvailable: heroId === "wukong",
     untargetable: false,
     tauntStreak: 0,
@@ -361,6 +414,7 @@ function getDisabledReason(actor, action) {
   const cost = getEffectiveCost(actor, action);
   if (cost > actor.eggs) return `蛋不足：需要${cost}颗`;
   if (action.id === "wukongClone" && actor.fireClones >= 2) return "火分身已达到2层";
+  if (action.id === "erlangEye" && actor.darkEyeActive) return "阴眼已开启";
   return "";
 }
 
@@ -392,6 +446,15 @@ function chooseTrashEnemyAction(legal) {
     if (enemy.eggs >= 1 && Math.random() < 0.26) return "taunt";
     if (enemy.eggs === 0 && Math.random() < 0.62) return "charge";
     return pickRandom(legal.filter((id) => id !== "wukongUltimate")) || "charge";
+  }
+
+  if (enemy.heroId === "erlang") {
+    if (enemy.eggs >= 3 && Math.random() < 0.34 && canChoose(legal, "erlangUltimate")) return "erlangUltimate";
+    if (enemy.eggs >= 2 && Math.random() < 0.34 && canChoose(legal, "erlangBlackhole")) return "erlangBlackhole";
+    if (enemy.eggs >= 2 && !enemy.darkEyeActive && Math.random() < 0.3 && canChoose(legal, "erlangEye")) return "erlangEye";
+    if (enemy.eggs >= 1 && Math.random() < 0.4 && canChoose(legal, "erlangBite")) return "erlangBite";
+    if (enemy.eggs === 0 && Math.random() < 0.62) return "charge";
+    return pickRandom(legal.filter((id) => id !== "erlangUltimate")) || "charge";
   }
 
   if (enemy.hp <= 2 && player.pendingUltimate && enemy.eggs >= 1) return "dodge";
@@ -436,6 +499,7 @@ function chooseSmartEnemyAction(legal) {
   }
 
   if (enemy.heroId === "wukong") return chooseSmartWukongAction(legal);
+  if (enemy.heroId === "erlang") return chooseSmartErlangAction(legal);
   return chooseSmartDragonAction(legal);
 }
 
@@ -489,6 +553,18 @@ function chooseSmartWukongAction(legal) {
   return chooseBestAttack(legal) || (canChoose(legal, "charge") ? "charge" : pickRandom(legal));
 }
 
+function chooseSmartErlangAction(legal) {
+  const enemy = game.enemy;
+
+  if (canChoose(legal, "erlangUltimate") && game.player.hp <= getExpectedDamage("erlangUltimate")) return "erlangUltimate";
+  if (canChoose(legal, "erlangBite") && game.player.hp <= getExpectedDamage("erlangBite")) return "erlangBite";
+  if (canChoose(legal, "erlangBlackhole") && game.player.tauntStreak < 2 && !game.player.forcedCharge) return "erlangBlackhole";
+  if (canChoose(legal, "erlangEye") && !enemy.darkEyeActive && enemy.eggs >= 2) return "erlangEye";
+  if (canChoose(legal, "erlangBite") && enemy.hp < getMaxHp(enemy)) return "erlangBite";
+  if (enemy.eggs < 2 && canChoose(legal, "charge")) return "charge";
+  return chooseBestAttack(legal, { allowUltimate: true }) || (canChoose(legal, "charge") ? "charge" : pickRandom(legal));
+}
+
 function choosePunishAction(legal) {
   return chooseBestAttack(legal, { allowUltimate: true }) || (canChoose(legal, "wukongClone") ? "wukongClone" : "charge");
 }
@@ -518,8 +594,8 @@ function chooseBestAttack(legal, options = {}) {
 }
 
 function getAttackCandidates(legal, options = {}) {
-  const attackIds = ["attack", "taunt", "dragon", "wukongTurn", "wukongUltimate"];
-  if (options.allowUltimate) attackIds.push("ultimate");
+  const attackIds = ["attack", "taunt", "dragon", "wukongTurn", "erlangBite", "erlangBlackhole"];
+  if (options.allowUltimate) attackIds.push("ultimate", "wukongUltimate", "erlangUltimate");
   return attackIds.filter((id) => canChoose(legal, id));
 }
 
@@ -537,11 +613,15 @@ function getExpectedDamage(actionId) {
     dragon: 3,
     wukongTurn: 2,
     wukongUltimate: 3,
+    erlangBite: 1,
+    erlangBlackhole: 1,
+    erlangUltimate: 3,
     ultimate: 4,
   }[actionId] || 0;
   const stealthBonus = enemy.stealthTurns > 0 && ["attack", "taunt", "dragon"].includes(actionId) ? 1 : 0;
   const cloneBonus = enemy.heroId === "wukong" && ["wukongTurn", "wukongUltimate"].includes(actionId) ? enemy.fireClones : 0;
-  return baseDamage + stealthBonus + cloneBonus;
+  const darkEyeBonus = enemy.darkEyeActive && ["taunt", "dragon", "erlangBite", "erlangBlackhole", "erlangUltimate"].includes(actionId) ? 1 : 0;
+  return baseDamage + stealthBonus + cloneBonus + darkEyeBonus;
 }
 
 function canChoose(legal, actionId) {
@@ -581,6 +661,10 @@ function resolveRound(playerAction, enemyAction) {
     player: player.pendingUltimate,
     enemy: enemy.pendingUltimate,
   };
+  const lingeringBlackholes = [
+    { source: player, target: enemy, turns: player.blackholeTurns, targetId: player.blackholeTargetId },
+    { source: enemy, target: player, turns: enemy.blackholeTurns, targetId: enemy.blackholeTargetId },
+  ];
 
   player.untargetable = false;
   enemy.untargetable = false;
@@ -607,6 +691,7 @@ function resolveRound(playerAction, enemyAction) {
   const attacks = [];
   if (previousPending.player) attacks.push(createUltimateAttack(player, enemy));
   if (previousPending.enemy) attacks.push(createUltimateAttack(enemy, player));
+  addLingeringBlackholes(attacks, lingeringBlackholes, playerAction, enemyAction, logs);
 
   addCurrentAttack(attacks, player, enemy, playerAction, startStealth.player, logs);
   addCurrentAttack(attacks, enemy, player, enemyAction, startStealth.enemy, logs);
@@ -621,6 +706,8 @@ function resolveRound(playerAction, enemyAction) {
   updateTauntStreak(enemy, successfulTaunts);
   tickStealth(player, newlyStealthed, logs);
   tickStealth(enemy, newlyStealthed, logs);
+  tickBlackhole(player);
+  tickBlackhole(enemy);
   player.untargetable = false;
   enemy.untargetable = false;
 
@@ -678,6 +765,11 @@ function applySetupAction(actor, action, newlyStealthed, logs) {
     logs.push(`${actor.displayName}发动【火魔斩】，本回合无法被选中，并刷新免费【烈焰闪】。`);
   }
 
+  if (actor.heroId === "erlang" && action.id === "erlangEye") {
+    actor.darkEyeActive = true;
+    logs.push(`${actor.displayName}开启【阴眼】，攻击技能伤害+1。`);
+  }
+
   if (action.id === "stealth") {
     actor.stealthTurns = STEALTH_DURATION;
     newlyStealthed.add(actor.id);
@@ -690,6 +782,30 @@ function applySetupAction(actor, action, newlyStealthed, logs) {
     newlyStealthed.add(actor.id);
     logs.push(`${actor.displayName}蓄起【瞬龙杀】，下回合爆发真伤，并进入暗隐。`);
   }
+}
+
+function addLingeringBlackholes(attacks, blackholes, playerAction, enemyAction, logs) {
+  blackholes.forEach((blackhole) => {
+    if (blackhole.turns <= 0 || blackhole.targetId !== blackhole.target.id) return;
+    const sourceAction = blackhole.source.id === "player" ? playerAction : enemyAction;
+    if (sourceAction.id === "erlangUltimate") {
+      logs.push(`${blackhole.source.displayName}以【暴风斩】覆盖【黑洞】余势。`);
+      return;
+    }
+
+    attacks.push({
+      source: blackhole.source,
+      target: blackhole.target,
+      name: "黑洞余势",
+      damage: 0,
+      level: 2,
+      canBlock: false,
+      taunt: false,
+      breaksDefense: false,
+      clashOnly: true,
+    });
+    logs.push(`${blackhole.source.displayName}的【黑洞】仍在持续，本回合保留2蛋攻击等级。`);
+  });
 }
 
 function addCurrentAttack(attacks, source, target, action, hadStealth, logs) {
@@ -743,6 +859,21 @@ function addCurrentAttack(attacks, source, target, action, hadStealth, logs) {
     return;
   }
 
+  if (action.id === "erlangEye") {
+    attacks.push({
+      source,
+      target,
+      name: "阴眼",
+      damage: 0,
+      level: getAttackLevel(action),
+      canBlock: false,
+      taunt: false,
+      breaksDefense: false,
+      clashOnly: true,
+    });
+    return;
+  }
+
   if (!action.isAttack) return;
 
   let stealthBonus = 0;
@@ -771,7 +902,7 @@ function addCurrentAttack(attacks, source, target, action, hadStealth, logs) {
       source,
       target,
       name: "挑",
-      damage: 1 + stealthBonus,
+      damage: getSkillDamage(source, action, 1 + stealthBonus),
       level: getAttackLevel(action),
       canBlock: true,
       taunt: true,
@@ -785,7 +916,7 @@ function addCurrentAttack(attacks, source, target, action, hadStealth, logs) {
       source,
       target,
       name: "落龙刺",
-      damage: 3 + stealthBonus,
+      damage: getSkillDamage(source, action, 3 + stealthBonus),
       level: getAttackLevel(action),
       canBlock: true,
       taunt: false,
@@ -808,6 +939,56 @@ function addCurrentAttack(attacks, source, target, action, hadStealth, logs) {
       canUseCloneBoost: true,
     });
   }
+
+  if (action.id === "erlangBite") {
+    attacks.push({
+      source,
+      target,
+      name: "狗咬",
+      damage: getSkillDamage(source, action, 1),
+      level: getAttackLevel(action),
+      canBlock: true,
+      taunt: false,
+      breaksDefense: false,
+      ultimate: false,
+      healOnHit: true,
+      healOnShieldHit: true,
+    });
+  }
+
+  if (action.id === "erlangBlackhole") {
+    attacks.push({
+      source,
+      target,
+      name: "黑洞",
+      damage: getSkillDamage(source, action, 1),
+      level: getAttackLevel(action),
+      canBlock: true,
+      taunt: true,
+      breaksDefense: true,
+      ultimate: false,
+      startsBlackhole: true,
+    });
+  }
+
+  if (action.id === "erlangUltimate") {
+    attacks.push({
+      source,
+      target,
+      name: "暴风斩",
+      damage: getSkillDamage(source, action, 3),
+      level: getAttackLevel(action),
+      canBlock: true,
+      taunt: false,
+      breaksDefense: true,
+      ultimate: true,
+    });
+  }
+}
+
+function getSkillDamage(source, action, baseDamage) {
+  if (action.id === "attack") return baseDamage;
+  return baseDamage + (source.darkEyeActive && action.isSkillAttack ? 1 : 0);
 }
 
 function createUltimateAttack(source, target) {
@@ -830,7 +1011,8 @@ function createUltimateAttack(source, target) {
 }
 
 function getAttackLevel(action) {
-  if (action.id === "ultimate" || action.id === "wukongUltimate") return ULTIMATE_ATTACK_LEVEL;
+  if (action.id === "ultimate" || action.id === "wukongUltimate" || action.id === "erlangUltimate") return ULTIMATE_ATTACK_LEVEL;
+  if (action.clashLevel) return action.clashLevel;
   if (action.id === "dodge") return action.cost;
   if (action.isAttack) return action.cost;
   return -1;
@@ -932,6 +1114,7 @@ function resolveAttacks(attacks, target, targetAction, logs, damaged, successful
       stealthAvailable = false;
       target.stealthTurns = 0;
       logs.push(`${target.displayName}被【${attack.name}】打中暗隐，破隐并免疫这次攻击。`);
+      if (attack.healOnShieldHit) healSource(attack, logs);
       return;
     }
 
@@ -946,6 +1129,7 @@ function resolveAttacks(attacks, target, targetAction, logs, damaged, successful
     } else if (target.fireClones > 0 && attack.damage > 0) {
       target.fireClones -= 1;
       logs.push(`${target.displayName}的【火分身】抵挡了【${attack.name}】，剩余${target.fireClones}层。`);
+      if (attack.healOnShieldHit) healSource(attack, logs);
       return;
     }
 
@@ -958,6 +1142,8 @@ function resolveAttacks(attacks, target, targetAction, logs, damaged, successful
     }
 
     applyDamage(target, damage, logs, damaged, `受到【${attack.name}】`);
+    if (attack.healOnHit) healSource(attack, logs);
+    if (attack.startsBlackhole && target.hp > 0) startBlackholeLock(attack, logs);
 
     if (attack.taunt && target.hp > 0) {
       if (target.tauntStreak < 2) {
@@ -969,6 +1155,18 @@ function resolveAttacks(attacks, target, targetAction, logs, damaged, successful
       }
     }
   });
+}
+
+function healSource(attack, logs, amount = 1) {
+  const before = attack.source.hp;
+  attack.source.hp = Math.min(getMaxHp(attack.source), attack.source.hp + amount);
+  logs.push(`${attack.source.displayName}的【${attack.name}】咬中目标，回复${attack.source.hp - before}血。`);
+}
+
+function startBlackholeLock(attack, logs) {
+  attack.source.blackholeTurns = 2;
+  attack.source.blackholeTargetId = attack.target.id;
+  logs.push(`${attack.target.displayName}被【黑洞】吸住，下回合仍会受到黑洞等级压制。`);
 }
 
 function getCloneBoostAfterHit(attack, target) {
@@ -1005,6 +1203,14 @@ function tickStealth(actor, newlyStealthed, logs) {
   actor.stealthTurns -= 1;
   if (actor.stealthTurns === 0) {
     logs.push(`${actor.displayName}的暗隐自然结束。`);
+  }
+}
+
+function tickBlackhole(actor) {
+  if (actor.blackholeTurns <= 0) return;
+  actor.blackholeTurns -= 1;
+  if (actor.blackholeTurns <= 0) {
+    actor.blackholeTargetId = null;
   }
 }
 
@@ -1153,6 +1359,8 @@ function getStatuses(actor) {
   if (actor.stealthTurns > 0) statuses.push({ label: `暗隐${actor.stealthTurns}`, kind: "stealth" });
   if (actor.pendingUltimate) statuses.push({ label: "瞬龙杀蓄势", kind: "gold" });
   if (actor.fireClones > 0) statuses.push({ label: `火分身${actor.fireClones}`, kind: "gold" });
+  if (actor.darkEyeActive) statuses.push({ label: "阴眼", kind: "gold" });
+  if (actor.blackholeTurns > 0) statuses.push({ label: "黑洞余势", kind: "stealth" });
   if (actor.freeDodgeAvailable) statuses.push({ label: "免费烈焰闪", kind: "gold" });
   if (actor.untargetable) statuses.push({ label: "无法选中", kind: "stealth" });
   if (actor.defenseBroken) statuses.push({ label: "已碎防", kind: "danger" });

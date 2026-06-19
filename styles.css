@@ -67,7 +67,7 @@ button {
 .hero-options {
   margin-top: 16px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -125,6 +125,12 @@ button {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(255, 224, 185, 0.72)),
     rgba(255, 248, 231, 0.78);
+}
+
+.hero-option-erlang {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 238, 179, 0.72)),
+    rgba(255, 248, 231, 0.82);
 }
 
 .ai-difficulty {
@@ -532,6 +538,26 @@ h2 {
 .fighter-enemy[data-hero="wukong"] .character-art-wrap {
   width: 238px;
   height: 300px;
+}
+
+.fighter[data-hero="erlang"] {
+  --team: #d6a332;
+  --team-dark: #7e5414;
+  --team-soft: rgba(214, 163, 50, 0.18);
+  --team-glow: rgba(255, 218, 105, 0.34);
+}
+
+.fighter[data-hero="erlang"] .character-art-wrap {
+  width: 328px;
+  height: 402px;
+  filter:
+    drop-shadow(0 12px 10px rgba(23, 32, 51, 0.2))
+    saturate(1.04);
+}
+
+.fighter-enemy[data-hero="erlang"] .character-art-wrap {
+  width: 244px;
+  height: 306px;
 }
 
 .fighter-hud {
@@ -1452,7 +1478,10 @@ h2 {
 .action-attack,
 .action-taunt,
 .action-dragon,
-.action-ultimate {
+.action-ultimate,
+.action-erlangBite,
+.action-erlangBlackhole,
+.action-erlangUltimate {
   --action-color: #bd3940;
   --action-soft: rgba(189, 57, 64, 0.1);
   --action-glow: rgba(255, 47, 53, 0.25);
@@ -1474,6 +1503,12 @@ h2 {
   --action-color: #594184;
   --action-soft: rgba(89, 65, 132, 0.1);
   --action-glow: rgba(183, 132, 255, 0.24);
+}
+
+.action-erlangEye {
+  --action-color: #b88721;
+  --action-soft: rgba(184, 135, 33, 0.12);
+  --action-glow: rgba(255, 211, 83, 0.28);
 }
 
 .action-ultimate {
@@ -1903,6 +1938,12 @@ h2 {
     filter: drop-shadow(0 8px 8px rgba(23, 32, 51, 0.18));
   }
 
+  .fighter[data-hero="erlang"] .character-art-wrap {
+    width: 258px;
+    height: 330px;
+    filter: drop-shadow(0 8px 8px rgba(23, 32, 51, 0.18));
+  }
+
   .fighter-enemy .character-art-wrap {
     width: 184px;
     height: 238px;
@@ -1911,6 +1952,11 @@ h2 {
   .fighter-enemy[data-hero="wukong"] .character-art-wrap {
     width: 208px;
     height: 268px;
+  }
+
+  .fighter-enemy[data-hero="erlang"] .character-art-wrap {
+    width: 214px;
+    height: 272px;
   }
 
   .shadow-ring {
