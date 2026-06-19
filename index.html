@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>拍拍手online</title>
+    <link rel="stylesheet" href="styles.css?v=40" />
+  </head>
+  <body>
+    <section class="character-select" id="characterSelect" aria-label="选择角色">
+      <div class="character-select-panel">
+        <p class="eyebrow">选择角色</p>
+        <h2>选择本局出战角色</h2>
+        <div class="hero-options">
+          <button class="hero-option hero-option-dragon" type="button" data-hero="dragon">
+            <img src="assets/dragon-girl-avatar.png?v=1" alt="" />
+            <span>
+              <strong>小龙女·暗隐</strong>
+              <small>隐身、破防、追踪真伤</small>
+            </span>
+          </button>
+          <button class="hero-option hero-option-wukong" type="button" data-hero="wukong">
+            <img src="assets/wukong-avatar.png?v=2" alt="" />
+            <span>
+              <strong>孙悟空·幻变</strong>
+              <small>烈焰闪、火分身、火魔斩</small>
+            </span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <main class="game-shell">
+      <section class="arena" aria-label="横板对战场地">
+        <div class="topbar">
+          <div>
+            <p class="eyebrow">横板回合对战</p>
+            <h1>拍拍手online</h1>
+          </div>
+          <button id="resetBtn" class="icon-button" type="button" title="重开">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12a8 8 0 1 1 2.34 5.66" />
+              <path d="M4 18v-6h6" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="battlefield">
+          <article class="fighter fighter-enemy" id="enemyCard">
+            <div class="fighter-hud">
+              <div class="fighter-header">
+                <div>
+                  <span class="role-label">电脑</span>
+                </div>
+                <span class="status-pill" id="enemyIntent">暗中观察</span>
+              </div>
+              <div class="fighter-body">
+                <div class="hud-column hud-hp">
+              <div class="stat-row stat-hp">
+                <div>
+                  <span>血量</span>
+                  <strong id="enemyHpText">5 / 5</strong>
+                </div>
+                <div class="heart-bar" id="enemyHpBar"></div>
+              </div>
+                </div>
+                <div class="hud-column hud-extra">
+              <div class="stat-row stat-eggs">
+                <div>
+                  <span>蛋</span>
+                  <strong id="enemyEggs">0</strong>
+                </div>
+                <div class="egg-tray" id="enemyEggTray"></div>
+              </div>
+              <div class="status-list" id="enemyStatuses"></div>
+                </div>
+              </div>
+            </div>
+            <div class="character-stage">
+              <div class="shadow-ring"></div>
+              <div class="character-art-wrap sprite-enemy" aria-hidden="true">
+                <img class="character-art" src="assets/dragon-girl.png?v=2" data-normal-src="assets/dragon-girl.png?v=2" data-stealth-src="assets/dragon-girl-stealth-cutout.png?v=2" alt="" />
+              </div>
+            </div>
+          </article>
+
+          <div class="round-panel">
+            <i class="round-orbit" aria-hidden="true"></i>
+            <span>回合</span>
+            <strong id="roundNumber">1</strong>
+            <p id="roundHint">选择你的动作，双方同时出招。</p>
+          </div>
+
+          <article class="fighter fighter-player" id="playerCard">
+            <div class="fighter-hud">
+              <div class="fighter-header">
+                <div>
+                  <span class="role-label">你</span>
+                </div>
+                <span class="status-pill" id="playerIntent">待出招</span>
+              </div>
+              <div class="fighter-body">
+                <div class="hud-column hud-hp">
+              <div class="stat-row stat-hp">
+                <div>
+                  <span>血量</span>
+                  <strong id="playerHpText">5 / 5</strong>
+                </div>
+                <div class="heart-bar" id="playerHpBar"></div>
+              </div>
+                </div>
+                <div class="hud-column hud-extra">
+              <div class="stat-row stat-eggs">
+                <div>
+                  <span>蛋</span>
+                  <strong id="playerEggs">0</strong>
+                </div>
+                <div class="egg-tray" id="playerEggTray"></div>
+              </div>
+              <div class="status-list" id="playerStatuses"></div>
+                </div>
+              </div>
+            </div>
+            <div class="character-stage">
+              <div class="shadow-ring"></div>
+              <div class="character-art-wrap sprite-player" aria-hidden="true">
+                <img class="character-art" src="assets/dragon-girl.png?v=2" data-normal-src="assets/dragon-girl.png?v=2" data-stealth-src="assets/dragon-girl-stealth-cutout.png?v=2" alt="" />
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="log-panel" aria-label="战斗记录">
+        <div class="log-header">
+          <p class="eyebrow">战斗记录</p>
+          <button id="clearLogBtn" class="text-button" type="button">清空</button>
+        </div>
+        <ol id="battleLog"></ol>
+      </section>
+
+      <section class="controls" aria-label="行动选择">
+        <div class="controls-header">
+          <div class="controls-heading">
+            <div>
+              <p class="eyebrow">指令</p>
+              <h2 id="controlTitle">选择本回合动作</h2>
+            </div>
+            <div class="character-name-pill">
+              <span>角色</span>
+              <strong id="characterName">小龙女·暗隐</strong>
+            </div>
+            <button class="clone-boost-toggle" id="cloneBoostToggle" type="button" aria-pressed="false" hidden>命中后选择加伤</button>
+          </div>
+          <div class="selected-action" id="selectedAction" aria-live="polite">
+            <span class="action-result-title">本回合出招</span>
+            <span class="action-result-row">
+              <b>你</b>
+              <strong id="playerActionResult">等待出招</strong>
+            </span>
+            <span class="action-result-row">
+              <b>电脑</b>
+              <strong id="enemyActionResult">等待出招</strong>
+            </span>
+          </div>
+        </div>
+
+        <div class="action-grid" id="actionGrid"></div>
+      </section>
+    </main>
+
+    <script src="game.js?v=14"></script>
+  </body>
+</html>
