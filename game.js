@@ -195,7 +195,7 @@ const ULTIMATE_ATTACK_LEVEL = 999;
 const AI_LEVELS = {
   trash: "垃圾",
   god: "神",
-  principal: "校长",
+  principal: "罗志康",
 };
 
 const dom = {
@@ -370,6 +370,7 @@ function chooseEnemyAction(playerActionId) {
 
   if (game.aiLevel === "trash") return chooseTrashEnemyAction(legal);
   if (enemy.forcedCharge) return "charge";
+  if (shouldUseOpeningCharge(playerActionId, legal)) return "charge";
   if (game.aiLevel === "principal") return choosePrincipalEnemyAction(legal, playerActionId) || chooseSmartEnemyAction(legal);
   return chooseSmartEnemyAction(legal) || chooseTrashEnemyAction(legal);
 }
@@ -404,6 +405,11 @@ function chooseTrashEnemyAction(legal) {
   if (enemy.eggs === 0 && Math.random() < 0.62) return "charge";
 
   return pickRandom(legal.filter((id) => id !== "ultimate")) || "charge";
+}
+
+function shouldUseOpeningCharge(playerActionId, legal) {
+  if (game.round > 3 || !canChoose(legal, "charge")) return false;
+  return game.player.lastAction === playerActionId;
 }
 
 function chooseSmartEnemyAction(legal) {
